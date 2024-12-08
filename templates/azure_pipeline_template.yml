@@ -1,11 +1,11 @@
 # Pipeline template to be used in the main pipeline for multiple stages
 
-pool:
-  vmImage: ubuntu-latest
-
 stages:
-- stage: Build_${{parameters.SourceDirectory}}
+- stage: Build_${{parameters.infrastructure}}
   displayName: '${{parameters.SourceDirectory}} Build Stage'
+  pool:
+    vmImage: ubuntu-latest
+
   jobs:
   - job: validate
     steps:
@@ -30,30 +30,42 @@ stages:
       displayName: 'terraform fmt and validate'
       workingDirectory: ${{parameters.SourceDirectory}}
 
-  - job: plan
+  - job: plan_and_publish
     dependsOn: validate
     condition: succeeded()
     steps:
     - checkout: self
-    - bash: |
-        terraform plan -out=main.tfplan -lock=false
+    - bash: | 
+        terraform init -upgrade
+        terraform plan -out=$(tf_planFile) -lock=false
       env:
         ARM_CLIENT_ID: $(SPN2-client-id)
         ARM_TENANT_ID: $(SPN2-tenant-id)
         ARM_CLIENT_SECRET: $(SPN2-client-secret)
         ARM_SUBSCRIPTION_ID: $(SPN2-subscription-id)
-        TF_VAR_hub-vm.public_key: 
-        TF_VAR_hub-vm.private_key:
-        TF_VAR_spokes-vm.spoke1.public_key:
-        TF_VAR_spokes-vm.spoke1.private_key:
-        TF_VAR_spokes-vm.spoke2.public_key:
-        TF_VAR_spokes-vm.spoke2.private_key:
+        TF_VAR_hub-sshkey: $(hub-sshkey)
+        TF_VAR_hub-sshkey-pub: $(hub-sshkey-pub)
+        TF_VAR_sp1-sshkey: $(sp1-sshkey)
+        TF_VAR_sp1-sshkey-pub: $(sp1-sshkey-pub)
+        TF_VAR_sp2-sshkey: $(sp2-sshkey)
+        TF_VAR_sp2-sshkey-pub: $(sp2-sshkey-pub)
+        TF_VAR_mypublic-ip: $(mypublic-ip)
       workingDirectory: ${{parameters.SourceDirectory}}
       displayName: 'terraform plan'
+    
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Pipeline.Workspace)' 
+        artifact: $(tf_planFile) # artifactName
+        publishLocation: 'pipeline' # upload artifact to pipeline
+      displayName: 'Publishing artifact'
     continueOnError: false  
-
-- stage: Deploy_${{parameters.SourceDirectory}}
+   
+- stage: Deploy_${{parameters.infrastructure}}
   displayName: '${{parameters.SourceDirectory}} Deploy Stage'
+  pool:
+    vmImage: ubuntu-latest
+
   jobs:
   - deployment: apply
     environment: $(ADO-Environment)        
@@ -61,14 +73,21 @@ stages:
       runOnce:
         deploy:
           steps:
-          - checkout: self
-          - bash: terraform apply main.tfplan -auto-approve -lock=true 
+          - download: current
+            artifact: $(tf_planFile)
+            displayName: 'Downloading artifact'
+
+          - template: terraform_install.yml  
+          
+          - bash: |
+              chmod a+x $(tf_planFile)
+              terraform apply $(tf_planFile) -auto-approve -lock=true 
+            workingDirectory: '$(Pipeline.Workspace)'
             env:
               ARM_CLIENT_ID: $(SPN2-client-id)
               ARM_TENANT_ID: $(SPN2-tenant-id)
               ARM_CLIENT_SECRET: $(SPN2-client-secret)
               ARM_SUBSCRIPTION_ID: $(SPN2-subscription-id)
-            workingDirectory: ${{parameters.SourceDirectory}}
             displayName: 'terraform apply'
 
 

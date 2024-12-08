@@ -1,26 +1,14 @@
 # Pipeline template to be used in the main pipeline for multiple stages
 
-variables:
-- group: 'service-connection'
-- name: RG_Name
-  value: "terraform-backend"            # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-- name: StorageAccName
-  value: "terraformstates16555"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-- name: ContainerName
-  value: "remote-backend"         # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-- name: BlobName
-  value: "spn-ado-1"                   # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
-- name: ADO-Environment
-  value: "PROD"
-
-pool:
-  vmImage: ubuntu-latest
-
 stages:
-- stage: Plan_Destroy_${{parameters.SourceDirectory}}
+- stage: Plan-Destroy-${{parameters.infrastructure}}
   displayName: '${{parameters.SourceDirectory}} Plan Stage'
+  pool:
+    vmImage: ubuntu-latest
+
   jobs:
   - job: validate
+
     steps:
     - checkout: self
     - template: terraform_install.yml
@@ -36,31 +24,41 @@ stages:
           -backend-config="key=$(BlobName)"
         terraform fmt && terraform validate
       env:
-        ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-        ARM_TENANT_ID: $(ARM_TENANT_ID)
-        ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
-        ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+        ARM_CLIENT_ID: $(SPN2-client-id)
+        ARM_TENANT_ID: $(SPN2-tenant-id)
+        ARM_CLIENT_SECRET: $(SPN2-client-secret)
+        ARM_SUBSCRIPTION_ID: $(SPN2-subscription-id)
       displayName: 'terraform fmt and validate'
       workingDirectory: ${{parameters.SourceDirectory}}
 
-  - job: plan-destroy
+  - job: plan-destroy-publish
     dependsOn: validate
     condition: succeeded()
     steps:
     - checkout: self
     - bash: |
-        terraform plan -destroy -out=main.destroy.tfplan -lock=false
+        terraform init -upgrade
+        terraform plan -destroy -out=$(tf_destroyFile) -lock=false
       env:
-        ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-        ARM_TENANT_ID: $(ARM_TENANT_ID)
-        ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
-        ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+        ARM_CLIENT_ID: $(SPN2-client-id)
+        ARM_TENANT_ID: $(SPN2-tenant-id)
+        ARM_CLIENT_SECRET: $(SPN2-client-secret)
+        ARM_SUBSCRIPTION_ID: $(SPN2-subscription-id)
       workingDirectory: ${{parameters.SourceDirectory}}
       displayName: 'terraform plan destroy'
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Pipeline.Workspace)' 
+        artifact: $(tf_destroyFile) # artifactName
+        publishLocation: 'pipeline' # upload artifact to pipeline
     continueOnError: false  
 
-- stage: Apply_Destroy_${{parameters.SourceDirectory}}
+- stage: Apply-Destroy-${{parameters.infrastructure}}
   displayName: '${{parameters.SourceDirectory}} Apply Stage'
+  pool:
+    vmImage: ubuntu-latest
+
   jobs:
   - deployment: apply-destroy
     environment: $(ADO-Environment)        
@@ -68,12 +66,19 @@ stages:
       runOnce:
         deploy:
           steps:
-          - checkout: self
-          - bash: terraform apply main.destroy.tfplan -auto-approve -lock=true 
+          - download: current
+            artifact: $(tf_destroyFile)
+            displayName: 'Downloading artifact'
+
+          - template: terraform_install.yml  
+          
+          - bash: |
+              chmod a+x $(tf_destroyFile)
+              terraform apply $(tf_destroyFile) -auto-approve -lock=true
+            workingDirectory: '$(Pipeline.Workspace)'
             env:
-              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-              ARM_TENANT_ID: $(ARM_TENANT_ID)
-              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
-              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
-            workingDirectory: ${{parameters.SourceDirectory}}
+              ARM_CLIENT_ID: $(SPN2-client-id)
+              ARM_TENANT_ID: $(SPN2-tenant-id)
+              ARM_CLIENT_SECRET: $(SPN2-client-secret)
+              ARM_SUBSCRIPTION_ID: $(SPN2-subscription-id)
             displayName: 'terraform destroy'

@@ -1,27 +1,48 @@
 name: $(Build.DefinitionName)_$(Date:yyyy-MM-dd)_v$(Rev:rr)
 
-trigger: none
-#  batch: true
-#  branches:
-#    include:
-#    - main
+trigger: 
+  batch: true
+  branches:
+    include:
+    - main
   
-#  paths:
-#    include:
-#      - '*'
-#    exclude:
- #     - SPN-Terraform-Deployment
+  paths:
+    include:
+      - '*'
+    exclude:
+      - SPN-Terraform-Deployment
+      - azure-pipelines.yml
+
+variables:
+- name: systm.debug
+  value: 'true'
+- group: 'service-connection'
+- name: RG_Name
+  value: "rg-ADO-2"            # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+- name: StorageAccName
+  value: "mystorageacct16425"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+- name: ContainerName
+  value: "storage-container"         # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+- name: BlobName
+  value: "hub-spoke-peering"         # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+- name: ADO-Environment
+  value: "PROD"
+- name: tf_destroyFile
+  value: "destroy.tfplan" 
 
 # Reusing template pipeline for multiple directories
 stages:
-#- template: templates/destroy_pipeline_template.yml
-#  parameters:
-#    SourceDirectory: 'infrastrucure/routes'   # change directory to network
+- template: templates/destroy_pipeline_template.yml
+  parameters:
+    SourceDirectory: 'infrastrucure/routes'   # change directory to network
+    infrastructure: 'Routes'
 
-#- template: templates/destroy_pipeline_template.yml
-#  parameters:
-#    SourceDirectory: 'infrastrucure/compute'   # change directory to compute
+- template: templates/destroy_pipeline_template.yml
+  parameters:
+    SourceDirectory: 'infrastrucure/compute'   # change directory to compute
+    infrastructure: 'Compute'
 
 - template: templates/destroy_pipeline_template.yml
   parameters:
     SourceDirectory: 'infrastrucure/network'    # change directory to routes 
+    infrastructure: 'Network'

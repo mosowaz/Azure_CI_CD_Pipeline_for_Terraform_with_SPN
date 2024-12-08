@@ -1,19 +1,36 @@
-data "terraform_remote_state" "network" {
-  backend = "local"
-  config = {
-    path = "../network/terraform.tfstate"
-  }
+data "azurerm_resource_group" "rg1" {
+  name = "rg-${var.location1}"
 }
 
-data "terraform_remote_state" "compute" {
-  backend = "local"
-  config = {
-    path = "../compute/terraform.tfstate"
-  }
+data "azurerm_resource_group" "rg2" {
+  name = "rg-${var.location2}"
+}
+
+data "azurerm_subnet" "subnet1" {
+  name                 = "vnet-1-subnet"
+  virtual_network_name = "vnet-1"
+  resource_group_name  = data.azurerm_resource_group.rg1.name
+}
+
+data "azurerm_subnet" "subnet2" {
+  name                 = "vnet-2-subnet"
+  virtual_network_name = "vnet-2"
+  resource_group_name  = data.azurerm_resource_group.rg2.name
+}
+
+data "azurerm_subnet" "subnet3" {
+  name                 = "vnet-3-subnet"
+  virtual_network_name = "vnet-3"
+  resource_group_name  = data.azurerm_resource_group.rg1.name
 }
 
 data "azurerm_network_security_group" "hub-nsg" {
   name                = azurerm_network_security_group.hub-nsg.name
+  resource_group_name = azurerm_resource_group.rg1.name
+}
+
+data "azurerm_network_security_group" "spokes-nsg" {
+  name                = azurerm_network_security_group.spokes-nsg.name
   resource_group_name = azurerm_resource_group.rg1.name
 }
 

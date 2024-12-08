@@ -1,6 +1,4 @@
 terraform {
-  required_version = "1.9.5"
-
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -16,5 +14,4 @@ provider "azurerm" {
     }
   }
   storage_use_azuread = true
-  subscription_id = var.subscription_id
 }

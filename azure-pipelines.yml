@@ -1,19 +1,24 @@
 name: $(Build.DefinitionName)_$(Date:yyyy-MM-dd)_v$(Rev:rr)
 
-trigger: none
-  #batch: true
-  #branches:
-    #include:
-    #- main
+trigger: 
+  batch: true
+  branches:
+   include:
+   - main
   
- # paths:
- #   include:
- #     - '*'
- #   exclude:
-  #    - SPN-Terraform-Deployment
-
+  paths:
+    include:
+      - '*'
+    exclude:
+      - SPN-Terraform-Deployment
+      - tf-destroy-pipelines.yml
+      
 variables:
+- name: systm.debug
+  value: 'true'
 - group: 'service-connection'
+- group: 'ssh-keys'
+- group: 'mypublic-ip'
 - name: RG_Name
   value: "rg-ADO-2"            # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
 - name: StorageAccName
@@ -21,21 +26,26 @@ variables:
 - name: ContainerName
   value: "storage-container"         # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
 - name: BlobName
-  value: "hub-spoke-peering"                   # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+  value: "hub-spoke-peering"         # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
 - name: ADO-Environment
   value: "PROD"
-
-# Reusing pipeline in multiple directories
+- name: tf_planFile
+  value: "main.tfplan"  
+  
+  # Reusing pipeline in multiple directories
 stages:
 - template: templates/azure_pipeline_template.yml
   parameters:
-    SourceDirectory: 'infrastrucure/network'   # change directory to network
+    SourceDirectory: 'infrastructure/network'   # change directory to network
+    infrastructure: 'Network'
 
-#- template: templates/azure_pipeline_template.yml
-#  parameters:
-#    SourceDirectory: 'infrastrucure/compute'   # change directory to compute
+- template: templates/azure_pipeline_template.yml
+  parameters:
+    SourceDirectory: 'infrastructure/compute'   # change directory to compute
+    infrastructure: 'Compute'
 
-#- template: templates/azure_pipeline_template.yml
-#  parameters:
-#    SourceDirectory: 'infrastrucure/routes'    # change directory to routes 
-
+- template: templates/azure_pipeline_template.yml
+  parameters:
+    SourceDirectory: 'infrastructure/routes'    # change directory to routes 
+    infrastructure: 'Routes'
+ 
