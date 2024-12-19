@@ -42,8 +42,3 @@ variable "spoke2_address_prefix" {
 variable "hub_address_prefix" {
   default = "10.0.1.0/24"
 }
-
-variable "backend-RGName" {}
-variable "backend-StorageAccName" {}
-variable "backend-ContainerName" {}
-variable "backend-BlobName" {}

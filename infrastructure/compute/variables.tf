@@ -14,8 +14,3 @@ variable "sp1-sshkey" {}   # environment variable to be passed from pipeline (ke
 variable "sp1-sshkey-pub" {}    # environment variable to be passed from pipeline (key vault)
 variable "sp2-sshkey" {}   # environment variable to be passed from pipeline (key vault)
 variable "sp2-sshkey-pub" {}    # environment variable to be passed from pipeline (key vault)
-
-variable "backend-RGName" {}
-variable "backend-StorageAccName" {}
-variable "backend-ContainerName" {}
-variable "backend-BlobName" {}

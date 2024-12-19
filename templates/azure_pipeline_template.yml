@@ -17,10 +17,10 @@ stages:
 
     - bash: |
         terraform init -input=false \
-          -backend-config="resource_group_name=$(TF_VAR_backend-RGName)" \
-          -backend-config="storage_account_name=$(TF_VAR_backend-StorageAccName)" \
-          -backend-config="container_name=$(TF_VAR_backend-ContainerName)" \
-          -backend-config="key=$(TF_VAR_backend-BlobName)" \
+          -backend-config="resource_group_name=$(RGName)" \
+          -backend-config="storage_account_name=$(StorageAccName)" \
+          -backend-config="container_name=$(ContainerName)" \
+          -backend-config="key=$(BlobName)" \
           -backend-config="use_azuread_auth=true"
         terraform fmt && terraform validate
       env:
@@ -38,10 +38,10 @@ stages:
     - checkout: self
     - bash: | 
         terraform init -input=false \
-          -backend-config="resource_group_name=$(TF_VAR_backend-RGName)" \
-          -backend-config="storage_account_name=$(TF_VAR_backend-StorageAccName)" \
-          -backend-config="container_name=$(TF_VAR_backend-ContainerName)" \
-          -backend-config="key=$(TF_VAR_backend-BlobName)" \
+          -backend-config="resource_group_name=$(RGName)" \
+          -backend-config="storage_account_name=$(StorageAccName)" \
+          -backend-config="container_name=$(ContainerName)" \
+          -backend-config="key=$(BlobName)" \
           -backend-config="use_azuread_auth=true"
         terraform plan -out='${{parameters.tfplan}}' -lock=false -input=false
       env:
@@ -92,10 +92,10 @@ stages:
           - bash: |
               chmod -R a+x .terraform/*
               terraform init -input=false \
-                -backend-config="resource_group_name=$(TF_VAR_backend-RGName)" \
-                -backend-config="storage_account_name=$(TF_VAR_backend-StorageAccName)" \
-                -backend-config="container_name=$(TF_VAR_backend-ContainerName)" \
-                -backend-config="key=$(TF_VAR_backend-BlobName)" \
+                -backend-config="resource_group_name=$(RGName)" \
+                -backend-config="storage_account_name=$(StorageAccName)" \
+                -backend-config="container_name=$(ContainerName)" \
+                -backend-config="key=$(BlobName)" \
                 -backend-config="use_azuread_auth=true"
               terraform apply -auto-approve -input=false '${{parameters.tfplan}}' 
             workingDirectory: '$(Build.SourcesDirectory)'

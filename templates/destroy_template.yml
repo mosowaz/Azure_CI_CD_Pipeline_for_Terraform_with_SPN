@@ -22,10 +22,10 @@ jobs:
   - bash: |
       chmod -R a+x .terraform/*
       terraform init -input=false \
-        -backend-config="resource_group_name=$(TF_VAR_backend-RGName)" \
-        -backend-config="storage_account_name=$(TF_VAR_backend-StorageAccName)" \
-        -backend-config="container_name=$(TF_VAR_backend-ContainerName)" \
-        -backend-config="key=$(TF_VAR_backend-BlobName)" \
+        -backend-config="resource_group_name=$(RGName)" \
+        -backend-config="storage_account_name=$(StorageAccName)" \
+        -backend-config="container_name=$(ContainerName)" \
+        -backend-config="key=$(BlobName)" \
         -backend-config="use_azuread_auth=true"
       terraform destroy -auto-approve -input=false '${{parameters.tfplan}}' 
     workingDirectory: '$(Pipeline.Workspace)'

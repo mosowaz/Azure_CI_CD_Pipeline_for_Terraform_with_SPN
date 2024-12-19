@@ -6,13 +6,13 @@ variables:
 - name: systm.debug
   value: 'true'
 - group: 'service-connection'
-- name: TF_VAR_backend-RGName
+- name: RGName
   value: "rg-ADO-2"            # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-- name: TF_VAR_backend-StorageAccName
+- name: StorageAccName
   value: "mystorageacct16425"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-- name: TF_VAR_backend-ContainerName
+- name: ContainerName
   value: "storage-container"         # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-- name: TF_VAR_backend-BlobName
+- name: BlobName
   value: "hub-spoke-peering"         # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
 - name: ADO-Environment
   value: "PROD"
